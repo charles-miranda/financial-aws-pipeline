@@ -25,5 +25,5 @@ variable "project_name" {
 variable "alert_email" {
   description = "Email para recibir alertas del pipeline"
   type        = string
-  default     = "charles.miranda.vilca@gmail.com"
+  default     = "tu-email@example.com"
 }

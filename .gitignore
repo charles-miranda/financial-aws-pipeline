@@ -26,3 +26,5 @@ response_transform.json
 *.csv.gz
 infra/terraform/.terraform/
 .terraform.lock.hcl
+*.tfvars
+*.tfvars.json
