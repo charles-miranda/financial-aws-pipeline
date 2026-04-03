@@ -17,4 +17,10 @@ credentials
 output_test_*.json
 .cache/
 lambda_package/
+lambda_package_transform/
+layer_pyarrow/
+layer_pandas/
+layer_all/
 response.json
+response_transform.json
+*.csv.gz
