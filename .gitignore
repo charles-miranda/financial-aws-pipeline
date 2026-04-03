@@ -24,3 +24,5 @@ layer_all/
 response.json
 response_transform.json
 *.csv.gz
+infra/terraform/.terraform/
+.terraform.lock.hcl

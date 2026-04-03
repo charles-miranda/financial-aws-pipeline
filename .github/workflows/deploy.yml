@@ -1,0 +1,69 @@
+name: Deploy Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Package ingestion Lambda
+        run: |
+          mkdir lambda_package
+          pip install yfinance pandas boto3 \
+            --target lambda_package \
+            --platform manylinux2014_x86_64 \
+            --implementation cp \
+            --python-version 3.11 \
+            --only-binary=:all:
+          cp ingestion/ingestion_lambda/handler.py lambda_package/
+          cp ingestion/ingestion_lambda/extractors.py lambda_package/
+          cp ingestion/ingestion_lambda/utils.py lambda_package/
+          cd lambda_package && zip -r ../ingestion_lambda.zip . && cd ..
+
+      - name: Package transformation Lambda
+        run: |
+          mkdir lambda_package_transform
+          pip install boto3 pandas \
+            --target lambda_package_transform \
+            --platform manylinux2014_x86_64 \
+            --implementation cp \
+            --python-version 3.11 \
+            --only-binary=:all:
+          cp transformations/lambda_jobs/handler.py lambda_package_transform/
+          cp transformations/lambda_jobs/transformer.py lambda_package_transform/
+          cd lambda_package_transform && zip -r ../transformation_lambda.zip . && cd ..
+
+      - name: Upload zips to S3
+        run: |
+          aws s3 cp ingestion_lambda.zip s3://financial-de-project-awsp1/scripts/ingestion_lambda.zip
+          aws s3 cp transformation_lambda.zip s3://financial-de-project-awsp1/scripts/transformation_lambda.zip
+
+      - name: Update Lambda functions
+        run: |
+          aws lambda update-function-code \
+            --function-name de-project-ingestion \
+            --s3-bucket financial-de-project-awsp1 \
+            --s3-key scripts/ingestion_lambda.zip
+
+          aws lambda update-function-code \
+            --function-name de-project-transformation \
+            --s3-bucket financial-de-project-awsp1 \
+            --s3-key scripts/transformation_lambda.zip
